@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Trading</h1>
+    <p>Bid: {{ bid }}</p>
+    <p>Ask: {{ ask }}</p>
+    
+    <form method="POST" action="{{ url_for('trade') }}">
+        <button type="submit" name="action" value="buy">Buy</button>
+        <button type="submit" name="action" value="sell">Sell</button>
+    </form>
+{% endblock %}

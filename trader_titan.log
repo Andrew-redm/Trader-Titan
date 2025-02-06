@@ -1,0 +1,40 @@
+2025-02-06 16:47:06,130 - WARNING -  * Debugger is active!
+2025-02-06 16:47:06,133 - INFO -  * Debugger PIN: 139-031-074
+2025-02-06 16:52:38,151 - INFO -  * Detected change in 'C:\\Users\\vougi\\Documents\\TraderTitan\\app.py', reloading
+2025-02-06 16:52:38,868 - WARNING -  * Debugger is active!
+2025-02-06 16:52:38,871 - INFO -  * Debugger PIN: 139-031-074
+2025-02-06 16:53:32,909 - INFO -  * Detected change in 'C:\\Users\\vougi\\Documents\\TraderTitan\\app.py', reloading
+2025-02-06 16:53:33,515 - WARNING -  * Debugger is active!
+2025-02-06 16:53:33,518 - INFO -  * Debugger PIN: 139-031-074
+2025-02-06 16:54:13,143 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.17.18.219:5000
+2025-02-06 16:54:13,143 - INFO - [33mPress CTRL+C to quit[0m
+2025-02-06 16:54:13,145 - INFO -  * Restarting with stat
+2025-02-06 16:54:13,712 - WARNING -  * Debugger is active!
+2025-02-06 16:54:13,715 - INFO -  * Debugger PIN: 139-031-074
+2025-02-06 16:54:56,566 - INFO -  * Detected change in 'C:\\Users\\vougi\\Documents\\TraderTitan\\app.py', reloading
+2025-02-06 16:54:56,648 - INFO -  * Restarting with stat
+2025-02-06 16:54:57,289 - WARNING -  * Debugger is active!
+2025-02-06 16:54:57,292 - INFO -  * Debugger PIN: 139-031-074
+2025-02-06 16:55:12,264 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-02-06 16:55:12,265 - INFO - [33mPress CTRL+C to quit[0m
+2025-02-06 16:55:12,268 - INFO -  * Restarting with stat
+2025-02-06 16:55:12,831 - WARNING -  * Debugger is active!
+2025-02-06 16:55:12,834 - INFO -  * Debugger PIN: 139-031-074
+2025-02-06 16:56:22,246 - INFO - 127.0.0.1 - - [06/Feb/2025 16:56:22] "[32mGET / HTTP/1.1[0m" 302 -
+2025-02-06 16:56:22,256 - DEBUG - ---- game_handler called ----
+2025-02-06 16:56:22,256 - DEBUG -   session: <SecureCookieSession {}>
+2025-02-06 16:56:22,402 - DEBUG - # _do_auth(): self._auth_plugin: 
+2025-02-06 16:56:22,402 - INFO - package: mysql.connector.plugins
+2025-02-06 16:56:22,402 - INFO - plugin_name: caching_sha2_password
+2025-02-06 16:56:22,405 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-02-06 16:56:22,405 - DEBUG - new_auth_plugin: caching_sha2_password
+2025-02-06 16:56:22,422 - INFO - 127.0.0.1 - - [06/Feb/2025 16:56:22] "GET /game HTTP/1.1" 200 -
+2025-02-06 16:56:22,476 - INFO - 127.0.0.1 - - [06/Feb/2025 16:56:22] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-02-06 16:58:33,485 - INFO -  * Detected change in 'C:\\Users\\vougi\\Documents\\TraderTitan\\app.py', reloading
+2025-02-06 16:58:33,552 - INFO -  * Restarting with stat
+2025-02-06 16:58:34,235 - WARNING -  * Debugger is active!
+2025-02-06 16:58:34,241 - INFO -  * Debugger PIN: 139-031-074

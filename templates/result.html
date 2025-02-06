@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Game Result</h1>
+
+    {% if session['market_maker'] == 'player' %}
+        <p>Bot {{ session['bot_trade_action'] }}s at {{ session['ask'] if session['bot_trade_action'] == 'buy' else session['bid'] }}</p>
+    {% elif session['market_maker'] == 'bot' %}
+        <p> Player {{ 'buys at ' + (session['ask']|string) if request.form['action'] == 'buy' else 'sells at ' + (session['bid']|string)}}</p>
+    {% endif %}
+    <p>The correct answer is: {{ answer }} {{ units }}</p>
+    <p>The winner is: {{ winner }}</p>
+
+    {# Optional:  Show the bot log (can be commented out or removed) #}
+    {#
+    <h2>Bot Log:</h2>
+    <ul>
+        {% for entry in bot_log %}
+            <li>{{ entry }}</li>
+        {% endfor %}
+    </ul>
+    #}
+
+    <a href="{{ url_for('home') }}">Play Again</a>
+{% endblock %}

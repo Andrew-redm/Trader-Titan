@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Trader Titan</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <p>Question: {{ session['question'] }}</p>
+
+    {% if session['current_mover'] == 'player' %}
+        <p>It's your turn!</p>
+        {% if session['current_width'] is none %}
+            <form method="post" action="{{ url_for('game_handler') }}">
+                <label for="initial_width">Enter Initial Width:</label>
+                <input type="number" id="initial_width" name="initial_width" required>
+                <button type="submit" name="action" value="set_initial_width">Set Width</button>
+            </form>
+        {% else %}
+            <p>Current Width: {{ session['current_width'] }}</p>
+            <form method="post" action="{{ url_for('game_handler') }}">
+                <label for="action">Choose an action:</label>
+                <select id="action" name="action" onchange="showWidthInput()">
+                    <option value="reduce_width">Reduce Width</option>
+                    <option value="make_market">Make Market</option>
+                </select>
+
+                <div id="width_input" style="display: block;">
+                    <label for="width">New Width:</label>
+                    <input type="number" id="width" name="width">
+                </div>
+
+                <button type="submit">Submit</button>
+            </form>
+        {% endif %}
+
+    {% elif session['current_mover'] == 'bot' %}
+        <p>It's the bot's turn.</p>
+    {% endif %}
+
+    <script>
+        function showWidthInput() {
+            var actionSelect = document.getElementById("action");
+            var widthInputDiv = document.getElementById("width_input");
+
+            if (actionSelect.value === "reduce_width") {
+                widthInputDiv.style.display = "block";
+            } else {
+                widthInputDiv.style.display = "none";
+            }
+        }
+        // Call on page load
+        showWidthInput();
+    </script>
+{% endblock %}
