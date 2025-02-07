@@ -3,4 +3,4 @@ venv/
 *.pyc
 __pycache__/
 launch.json
-*.log
+trader_titan.log
