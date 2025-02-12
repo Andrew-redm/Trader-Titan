@@ -58,16 +58,38 @@
                         <input type="hidden" name="action" value="provide_market">
                         <div>
                             <label for="bid">Your Bid:</label>
-                            <input type="number" id="bid" name="bid" required step="any">
+                            <input type="number" id="bid" name="bid" required step="1" oninput="calculateAsk()">
                         </div>
                         <div>
                             <label for="ask">Your Ask:</label>
-                            <input type="number" id="ask" name="ask" required step="any">
+                            <input type="number" id="ask" name="ask" required step="1" oninput="calculateBid()">
                         </div>
                         <small>The spread (ask - bid) must equal the current width ({{ game_state.current_width }})</small>
                         <button type="submit">Submit Market</button>
                     </form>
                 </div>
+
+                <script>
+                    const width = {{ game_state.current_width }};
+                    
+                    function calculateAsk() {
+                        const bidInput = document.getElementById('bid');
+                        const askInput = document.getElementById('ask');
+                        if (bidInput.value !== '') {
+                            const bid = parseInt(bidInput.value);
+                            askInput.value = Math.round(bid + width);
+                        }
+                    }
+
+                    function calculateBid() {
+                        const bidInput = document.getElementById('bid');
+                        const askInput = document.getElementById('ask');
+                        if (askInput.value !== '') {
+                            const ask = parseInt(askInput.value);
+                            bidInput.value = Math.round(ask - width);
+                        }
+                    }
+                </script>
 
             <!-- Reduce Width or Make Market Options -->
             {% elif show_reduce_width_option %}
