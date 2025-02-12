@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Trader Titan</h1>
+
+    <h2>Choose Your Game Mode:</h2>
+
+    <a href="{{ url_for('home', mode='single') }}"><button>Single Round</button></a> <br><br>
+
+    <h2>Battle a Bot:</h2>
+    <form action="{{ url_for('battle') }}" method="post">
+        <label for="bot_type">Choose a Bot:</label>
+        <select name="bot_type" id="bot_type">
+            <option value="AggressiveBot">Aggressive Bot</option>
+            <option value="PassiveBot">Passive Bot</option>
+            <option value="MarketLoverBot">Market Lover Bot</option>
+            <option value="MarketHaterBot">Market Hater Bot</option>
+            <option value="RandomBot">Random Bot</option>
+        </select>
+        <button type="submit">Start Battle</button>
+    </form>
+{% endblock %}

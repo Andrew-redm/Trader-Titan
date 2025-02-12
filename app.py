@@ -1,10 +1,11 @@
 import mysql.connector
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import random
-from bot_strategies import AggressiveBot, PassiveBot, MarketLoverBot, MarketHaterBot, RandomBot
+from bot_strategies import AggressiveBot, PassiveBot, MarketLoverBot, MarketHaterBot, RandomBot, Bot
 import os
 from dotenv import load_dotenv
 import logging
+import math  # Import math for rounding
 
 load_dotenv()
 
@@ -18,6 +19,7 @@ db_host = os.environ.get('MYSQL_HOST')
 db_user = os.environ.get('MYSQL_USER')
 db_password = os.environ.get('MYSQL_PASSWORD')
 db_name = os.environ.get('MYSQL_DATABASE')
+
 
 def get_db_connection():
     mydb = mysql.connector.connect(
@@ -36,78 +38,7 @@ def get_random_question():
     conn.close()
     return question_data
 
-
-def choose_first_mover():
-    return random.choice(['player', 'bot'])
-
-def initialize_game():
-    question_data = get_random_question()
-
-    if question_data:
-        question = f"{question_data['question']} (in {question_data['units']})"
-        true_answer = question_data['answer']
-        units = question_data['units']
-
-        session['question'] = question
-        session['true_answer'] = true_answer
-        session['units'] = units
-        session['first_mover'] = choose_first_mover()
-        session['current_mover'] = session['first_mover']
-        session['current_width'] = None
-        session['game_over'] = False
-        session['market_made'] = False
-        session['market_maker'] = None
-        session['bid'] = None
-        session['ask'] = None
-
-        bot_types = {
-            'AggressiveBot': AggressiveBot,
-            'PassiveBot': PassiveBot,
-            'MarketLoverBot': MarketLoverBot,
-            'MarketHaterBot': MarketHaterBot,
-            'RandomBot': RandomBot,
-        }
-        bot_type_name = random.choice(list(bot_types.keys()))
-        session['bot_type_name'] = bot_type_name
-
-        session['bot_params'] = {
-            'initial_estimate_noise': 0.5,
-            'width_reduction_multiplier': random.choice([0.8, 0.85, 0.9]),
-            'market_willingness': random.choice([0.1, 0.4, 0.9]),
-            'std_dev_multiplier': 4.0  #this needs work
-        }
-
-
-        initial_estimate = true_answer * (1 + random.uniform(-session['bot_params']['initial_estimate_noise'], session['bot_params']['initial_estimate_noise']))
-        session['bot_initial_estimate'] = initial_estimate
-        session['bot_log'] = []
-
-    else:
-        session['question'] = "No question found"
-        session['true_answer'] = 0
-        session['units'] = ""
-        session['current_width'] = None
-        session['first_mover'] = None
-        session['current_mover'] = None
-        session['game_over'] = True
-        session['market_made'] = False
-        session['market_maker'] = None
-        session['bid'] = None
-        session['ask'] = None
-        session['bot_type_name'] = None
-        session['bot_initial_estimate'] = None
-        session['bot_params'] = None
-        session['bot_log'] = []
-
-
-
-def create_bot():
-    bot_type_name = session['bot_type_name']
-    initial_estimate = session['bot_initial_estimate']
-    true_answer = session['true_answer']
-    bot_params = session['bot_params']
-
-    bot_classes = {
+bot_types = {
         'AggressiveBot': AggressiveBot,
         'PassiveBot': PassiveBot,
         'MarketLoverBot': MarketLoverBot,
@@ -115,208 +46,460 @@ def create_bot():
         'RandomBot': RandomBot,
     }
 
-    if bot_type_name in bot_classes:
-        bot = bot_classes[bot_type_name](true_answer, **bot_params)
-        bot.current_estimate = initial_estimate
-        bot.log = session['bot_log']
+def create_bot(true_answer, bot_type_name=None, bot_params=None):
+    
+
+    if bot_type_name is None:
+        bot_type_name = random.choice(list(bot_types.keys()))
+
+    if bot_params is None:
+        bot_params = {
+            'initial_estimate_noise': 0.5,
+            'width_reduction_multiplier': 0.9,
+            'market_willingness': 0.5,
+            'std_dev_multiplier': 4.0
+        }
+
+    if bot_type_name in bot_types:
+        bot = bot_types[bot_type_name](true_answer, **bot_params)
         return bot
     else:
         logging.error(f"Unknown bot type: {bot_type_name}")
         return None
+    
+def initialize_game_battle(selected_bot_type):
+    question_data = get_random_question()
 
-# --- Flask Routes ----
+    if question_data:
+        question = f"{question_data['question']} (in {question_data['units']})"
+        true_answer = question_data['answer']
+        units = question_data['units']
+
+        bot = create_bot(true_answer, bot_type_name=selected_bot_type)
+        if bot is None:
+            return False
+
+        game_state = {
+            'mode': 'battle',
+            'question': question,
+            'true_answer': true_answer,
+            'units': units,
+            'current_mover': random.choice(['player', 'bot']),
+            'current_width': None,
+            'game_over': False,
+            'market_made': False,
+            'market_maker': None,
+            'bid': None,
+            'ask': None,
+            'bot_type_name': type(bot).__name__,
+            'bot': bot.to_dict(),
+            'bot_log': [],
+            'player_capital': 10000,
+            'bot_capital': 10000,
+        }
+        return game_state
+
+    else:
+        return False
+            
+def calculate_damage(true_answer, bid, ask, trade_action, game_state):
+    #this is going to need a lot of work
+    market_width = ask - bid
+    if bid <= true_answer <= ask:
+        if trade_action == 'buy':
+            error = abs(true_answer - ask)
+        else:  # 'sell'
+            error = abs(true_answer - bid)
+    else:  
+        error = abs(true_answer - (ask if true_answer > ask else bid))
+
+    normalized_error = error / (true_answer + market_width)
+    damage = int(round(normalized_error * 10000)) 
+    damage = round(damage, 0)
+    logging.debug(f"Damage calculated: {damage}") 
+
+    if (trade_action == 'buy' and true_answer > ask) or \
+       (trade_action == 'sell' and true_answer < bid):
+        game_state['bot_capital'] -= damage
+        game_state['winner'] = 'player'
+    else:
+        game_state['player_capital'] -= damage
+        game_state['winner'] = 'bot'
+
+    return damage
+def initialize_game_single():
+    question_data = get_random_question()
+
+    if question_data:
+        question = f"{question_data['question']} (in {question_data['units']})"
+        true_answer = question_data['answer']
+        units = question_data['units']
+
+        bot = create_bot(true_answer)
+        if bot is None:
+            return False
+
+        game_state = {
+            'mode': 'single', 
+            'question': question,
+            'true_answer': true_answer,
+            'units': units,
+            'current_mover': 'player',#not needed
+            'current_width': None,
+            'game_over': False,
+            'market_made': False,
+            'market_maker': None,
+            'bid': None,
+            'ask': None,
+            'bot_type_name': type(bot).__name__,
+            'bot': bot.to_dict(),
+            'bot_log': [],
+            'player_capital': 10000,
+            'bot_capital': 10000,
+        }
+        return game_state
+    else:
+        return {
+            'question': "No question found",
+            'game_over': True,
+            'mode': 'single',
+            'bot_type_name': None,
+            'bot': None,
+            'bot_log': [],
+            'player_capital': 10000,
+            'bot_capital': 10000,
+        }
+
+def reset_battle_round(game_state):
+    """Reset game state for a new battle round while preserving scores and bot type."""
+    question_data = get_random_question()
+    if not question_data:
+        return False
+
+    logging.debug(f"Old question: {game_state.get('question')}")
+    logging.debug(f"New question data: {question_data}")
+
+    bot_type_name = game_state['bot_type_name']
+    player_capital = game_state['player_capital']
+    bot_capital = game_state['bot_capital']
+    mode = game_state['mode']
+    
+    game_state.clear()
+    #no way this is the right way to do this
+    game_state['mode'] = mode
+    game_state['bot_type_name'] = bot_type_name
+    game_state['player_capital'] = player_capital
+    game_state['bot_capital'] = bot_capital
+    game_state['question'] = str(question_data['question']) + f" (in {question_data['units']})"
+    game_state['true_answer'] = float(question_data['answer'])
+    game_state['units'] = str(question_data['units'])
+    game_state['current_mover'] = random.choice(['player', 'bot'])
+    game_state['current_width'] = None
+    game_state['market_made'] = False
+    game_state['market_maker'] = None
+    game_state['bid'] = None
+    game_state['ask'] = None
+    game_state['bot'] = create_bot(question_data['answer'], bot_type_name=bot_type_name).to_dict()
+    game_state['bot_log'] = []
+    game_state['game_over'] = False
+    
+    logging.debug(f"Reset complete. New question: {game_state['question']}")
+    
+    return True
 
 @app.route('/')
 def home():
-    return redirect(url_for('game_handler'))
+    bot_types_list = list(bot_types.keys())
+    return render_template('home.html', bot_types=bot_types_list)
 
-@app.route('/game', methods=['GET', 'POST'])
-def game_handler():
-    logging.debug("---- game_handler called ----")
-    logging.debug(f"  session: {session}")
+@app.route('/start_game', methods=['POST'])
+def start_game():
+    game_mode = request.form['game_mode']
+    bot_type = request.form['bot_type']
 
-    if 'question' not in session or session['game_over']:
-        initialize_game()
+    if game_mode == 'single':
+        game_state = initialize_game_single()
+    elif game_mode == 'battle':
+        game_state = initialize_game_battle(bot_type)
+    else:
+        flash("Invalid game mode selected.", 'error')
+        return redirect(url_for('home'))
 
-    if session['game_over']:
-        return redirect(url_for('result'))
+    if not game_state:
+        flash("Failed to initialize game.", 'error')
+        return redirect(url_for('home'))
 
-    # Bots turn
-    if session['current_mover'] == 'bot' and session['bot_type_name'] is not None and not session['market_made']:
-        bot = create_bot()
-        if bot is None:
-            flash("Error: Bot could not be created", 'error')
+    session['game_state'] = game_state
+    return redirect(url_for('game'))
+
+@app.route('/battle', methods=['GET', 'POST'])
+def battle():
+    if request.method == 'POST':
+        selected_bot_type = request.form.get('bot_type')
+        valid_bot_types = ['AggressiveBot', 'PassiveBot', 'MarketLoverBot', 'MarketHaterBot', 'RandomBot']
+        if selected_bot_type not in valid_bot_types:
+            flash("Invalid bot type selected.", 'error')
             return redirect(url_for('home'))
 
-        if session['current_width'] is None:
-            session['current_width'] = bot.generate_initial_width()
-            bot.log.append(f"Bot set initial width: {session['current_width']}")
-            session['current_mover'] = 'player'
-            session['bot_log'] = bot.log
-            return redirect(url_for('game_handler'))
+        game_state = initialize_game_battle(selected_bot_type)
+        if not game_state:
+            flash("Failed to initialize game.", 'error')
+            return redirect(url_for('home'))
+        session['game_state'] = game_state
+        return redirect(url_for('game'))
 
-        action = bot.choose_action(session['current_width'])
+    return render_template('home.html')
 
-        if action == 'reduce_width':
-            new_width = int(round(session['current_width'] * bot.width_reduction_multiplier))
-            session['current_width'] = max(0, new_width)
-            bot.update_belief('reduce_width', session['current_width'])
-            session['bot_initial_estimate'] = bot.current_estimate
-            session['current_mover'] = 'player'
-            session['bot_log'] = bot.log 
-            return redirect(url_for('game_handler'))
+@app.route('/game', methods=['GET', 'POST'])
+def game():
+    if 'game_state' not in session:
+        logging.debug("No game state in session")
+        return redirect(url_for('home'))
+    
+    game_state = session['game_state']
+    logging.debug(f"Game State: {game_state}")
+    
+    if game_state.get('game_over', False):
+        return redirect(url_for('result'))
 
-        elif action == 'make_market':
-            session['market_maker'] = 'player'
-            session['bot_log'] = bot.log 
-            return redirect(url_for('make_market'))
+    if game_state.get('round_ended'):
+        flash(f"Round Complete! {game_state['winner']} won. Damage: {game_state['last_round_damage']}", 'info')
+        
+        game_state['round_ended'] = False
+        game_state['last_round_damage'] = None
+        game_state['last_round_winner'] = None
+        game_state['market_made'] = False
+        game_state['market_maker'] = None
+        game_state['bid'] = None
+        game_state['ask'] = None
+        game_state['current_width'] = None
+        game_state['waiting_for_market'] = False
 
-    # Player turn
-    elif session['current_mover'] == 'player' and request.method == 'POST':
-        action = request.form['action']
+        if not reset_battle_round(game_state):
+            flash("Could not load a new question!", 'error')
+            game_state['game_over'] = True
+            session['game_state'] = game_state
+            return redirect(url_for('result'))
 
-        if action == 'set_initial_width':
+    if game_state['current_mover'] == 'player' and request.method == 'POST':
+        action = request.form.get('action')
+        
+        if game_state['current_width'] is None:
             try:
                 initial_width = int(request.form['initial_width'])
-                if initial_width < 0:
-                    flash("Initial width must be non-negative.", 'error')
-                    return render_template('index.html', question=session['question'], current_width=session['current_width'])
-                min_width = 10
-                if initial_width < min_width:
-                    flash(f'Initial width must be at least {min_width}', 'error')
-                    return render_template('index.html', question=session['question'], current_width=session['current_width'])
-
-                session['current_width'] = initial_width
-                session['current_mover'] = 'bot'
-                return redirect(url_for('game_handler'))
+                if initial_width < 1:
+                    flash("Initial width must be at least 1.", 'error')
+                else:
+                    game_state['current_width'] = initial_width
+                    game_state['current_mover'] = 'bot'
+                    session['game_state'] = game_state
+                    return redirect(url_for('bot_turn'))
             except ValueError:
-                flash("Invalid input.  Please enter an integer.", 'error')
-                return render_template('index.html', question=session['question'], current_width=session['current_width'])
+                flash("Invalid initial width.", 'error')
 
         elif action == 'reduce_width':
             try:
                 new_width = int(request.form['width'])
-                if new_width > int(round(session['current_width'] * 0.9)):
-                    flash("New width cannot be greater than 90% of the current width.", 'error')
-                    return render_template('index.html', question=session['question'], current_width=session['current_width'])
-                if new_width < 0:
-                    flash("New width cannot be negative", 'error')
-                    return render_template('index.html', question=session['question'], current_width=session['current_width'])
-                min_width = 1 #this is a problem if you think about it. So we will not be thinking about it
-                if new_width < min_width:
-                    flash(f'Width must be at least {min_width}', 'error')
-                    return render_template('index.html', question=session['question'], current_width=session['current_width'])
-                session['current_width'] = new_width
-
-                if session['bot_type_name'] is not None:
-                    bot = create_bot()
-                    if bot is None: #Error
-                        flash('Error creating bot', 'error')
-                        return redirect(url_for('home'))
-                    bot.update_belief('reduce_width', session['current_width'])
-                    session['bot_initial_estimate'] = bot.current_estimate
-                    session['bot_log'] = bot.log
-
-
-                session['current_mover'] = 'bot'
-                return redirect(url_for('game_handler'))
+                if new_width < 1:
+                    flash("Width cannot be less than 1.", 'error')
+                elif new_width >= int(game_state['current_width'] * 0.9):
+                    flash("Width reduction must be at least 10%.", 'error')
+                else:
+                    game_state['current_width'] = new_width
+                    game_state['current_mover'] = 'bot'
+                    session['game_state'] = game_state
+                    return redirect(url_for('bot_turn'))
             except ValueError:
-                flash("Invalid input.  Please enter a valid integer.", 'error')
-                return render_template('index.html', question=session['question'], current_width=session['current_width'])
-
+                flash("Invalid width value.", 'error')
+        
         elif action == 'make_market':
-            session['market_maker'] = 'bot'
-            bot = create_bot()
-            if bot is None:
-                flash("Error occurred creating bot", 'error')
-                return redirect(url_for('home'))
-            session['bid'], session['ask'] = bot.make_market(session['current_width'])
-            session['market_made'] = True
-            session['bot_log'] = bot.log
-            return redirect(url_for('trade'))
+            game_state['market_maker'] = 'player'
+            game_state['current_mover'] = 'bot'
+            session['game_state'] = game_state
+            return redirect(url_for('bot_turn'))
 
-    elif session['current_mover'] == 'bot' and session['market_made'] and session['market_maker'] == 'player' and session['bot_type_name'] is not None:
-        bot = create_bot()
-        if bot is None:
-          flash("Error occurred when creating bot", 'error')
-          return redirect(url_for('home'))
+        elif action == 'provide_market':
+            try:
+                bid = float(request.form['bid'])
+                ask = float(request.form['ask'])
+                if ask - bid != game_state['current_width']:
+                    flash("The spread must equal the current width!", 'error')
+                else:
+                    game_state['bid'] = bid
+                    game_state['ask'] = ask
+                    game_state['market_made'] = True
+                    game_state['current_mover'] = 'bot'
+                    session['game_state'] = game_state
+                    return redirect(url_for('bot_turn'))
+            except ValueError:
+                flash("Invalid bid or ask values.", 'error')
 
-        action = bot.trade(session['bid'], session['ask'])
-        session['bot_trade_action'] = action
-        session['bot_log'] = bot.log
+        # bot has made market
+        elif action == 'trade':
+            trade_action = request.form.get('trade_action')
+            if trade_action not in ['buy', 'sell']:
+                flash("Invalid trade action.", 'error')
+            else:
+                correct_price = game_state['question_answer']
+                if trade_action == 'buy':
+                    trade_price = game_state['ask']
+                    damage = abs(correct_price - trade_price)
+                else:  # sell
+                    trade_price = game_state['bid']
+                    damage = abs(trade_price - correct_price)
 
+                game_state['player_capital'] -= damage
+                game_state['last_round_damage'] = damage
+                game_state['last_round_winner'] = 'bot'
+                game_state['round_ended'] = True
 
-        if action == 'buy':
-            winner = 'bot' if session['true_answer'] > session['ask'] else 'player'
-        else:  # action == 'sell'
-            winner = 'bot' if session['true_answer'] < session['bid'] else 'player'
+                if game_state['player_capital'] <= 0:
+                    game_state['game_over'] = True
+                
+                session['game_state'] = game_state
+                return redirect(url_for('game'))
 
-        session['game_over'] = True
-        session['winner'] = winner
-        return redirect(url_for('result'))
+    elif game_state['current_mover'] == 'bot':
+        return redirect(url_for('bot_turn'))
 
-    return render_template('index.html', question=session.get('question'), current_width=session.get('current_width'))
+    show_initial_width_form = (game_state['current_width'] is None and 
+                             game_state['current_mover'] == 'player')
+    
+    show_reduce_width_option = (game_state['current_width'] is not None and 
+                              game_state['current_mover'] == 'player' and 
+                              not game_state['market_made'])
+    
+    waiting_for_bot = game_state['current_mover'] == 'bot'
 
-@app.route('/make_market', methods=['GET', 'POST'])
-def make_market():
-    if request.method == 'POST':
-        try:
-            bid = float(request.form.get('bid'))
-            ask = float(request.form.get('ask'))
-        except ValueError:
-            flash("Invalid input for bid or ask.  Please enter numbers.", 'error')
-            return render_template('make_market.html', current_width=session['current_width'])
+    session['game_state'] = game_state
+    return render_template('game.html', 
+                         game_state=game_state,
+                         show_initial_width_form=show_initial_width_form,
+                         show_reduce_width_option=show_reduce_width_option,
+                         waiting_for_bot=waiting_for_bot)
 
-        if bid >= ask:
-            flash("Bid must be less than ask.", 'error')
-            return render_template('make_market.html', current_width=session['current_width'], bid=bid, ask=ask)
+@app.route('/bot_turn')
+def bot_turn():
+    game_state = session.get('game_state')
+    if not game_state:
+        return redirect(url_for('home'))
 
-        if bid < 1:
-            flash("Bid must be at least 1.", 'error')
-            return render_template('make_market.html', current_width=session['current_width'], bid=bid, ask=ask)
+    bot = Bot.from_dict(game_state['bot'])
 
-        session['bid'] = int(round(bid))
-        session['ask'] = int(round(ask))
-        session['market_made'] = True
-        session['current_mover'] = 'bot'
-        return redirect(url_for('game_handler'))
+    # bot to trade
+    if game_state['market_made'] and game_state['market_maker'] == 'bot':
+        trade_action = bot.trade(game_state['bid'], game_state['ask'])
+        correct_price = game_state['true_answer']
+        
+        if trade_action == 'buy':
+            trade_price = game_state['ask']
+            if trade_price > correct_price:
+                damage = abs(correct_price - trade_price)
+                game_state['bot_capital'] -= damage
+                game_state['winner'] = 'player'
+                game_state['bot_log'].append(f"Bot bought at {trade_price} (above true value {correct_price})")
+                game_state['bot_log'].append(f"Bot takes damage: {damage}")
+            else:
+                damage = abs(correct_price - trade_price)
+                game_state['player_capital'] -= damage
+                game_state['winner'] = 'bot'
+                game_state['bot_log'].append(f"Bot bought at {trade_price} (below true value {correct_price})")
+                game_state['bot_log'].append(f"Player takes damage: {damage}")
+        else:  # sell
+            trade_price = game_state['bid']
+            if trade_price < correct_price:
+                damage = abs(trade_price - correct_price)
+                game_state['bot_capital'] -= damage
+                game_state['winner'] = 'player'
+                game_state['bot_log'].append(f"Bot sold at {trade_price} (below true value {correct_price})")
+                game_state['bot_log'].append(f"Bot takes damage: {damage}")
+            else:
+                damage = abs(trade_price - correct_price)
+                game_state['player_capital'] -= damage
+                game_state['winner'] = 'bot'
+                game_state['bot_log'].append(f"Bot sold at {trade_price} (above true value {correct_price})")
+                game_state['bot_log'].append(f"Player takes damage: {damage}")
+
+        game_state['last_round_damage'] = damage
+        game_state['round_summary'] = {
+            'true_answer': correct_price,
+            'trade_action': trade_action,
+            'trade_price': trade_price,
+            'damage': damage,
+            'winner': game_state['winner']
+        }
+        
+        flash(f"""Round Summary:
+        True Answer: {correct_price}
+        Bot {trade_action} at {trade_price}
+        Damage Dealt: {damage}
+        Winner: {game_state['winner']}
+        New Player Capital: {game_state['player_capital']}
+        New Bot Capital: {game_state['bot_capital']}""", 'info')
+
+        #game over
+        if game_state['bot_capital'] <= 0 or game_state['player_capital'] <= 0:
+            game_state['game_over'] = True
+            session['game_state'] = game_state
+            return redirect(url_for('result'))
+        
+        #new round
+        game_state['round_ended'] = True
+        session['game_state'] = game_state
+        return redirect(url_for('game'))
+
+    if game_state['current_width'] is None:
+        game_state['current_width'] = bot.generate_initial_width()
+        game_state['current_mover'] = 'player'
+        game_state['bot_log'].append(f"Bot set initial width: {game_state['current_width']}")
+        
+    elif game_state['market_maker'] == 'player' and not game_state['market_made']:
+        game_state['bid'], game_state['ask'] = bot.make_market(game_state['current_width'])
+        game_state['market_made'] = True
+        game_state['bot_log'].append(f"Bot made market: Bid={game_state['bid']}, Ask={game_state['ask']}")
+        game_state['current_mover'] = 'player'
 
     else:
-        bid = None
-        ask = None
-        return render_template('make_market.html', current_width=session['current_width'], bid=bid, ask=ask)
-@app.route('/trade', methods=['GET','POST'])
-def trade():
-    if request.method == 'POST':
-        # Player must trade
-        action = request.form['action']
-        if action == 'buy':
-            winner = 'player' if session['true_answer'] > session['ask'] else 'bot'
-        else:  # action == 'sell'
-            winner = 'player' if session['true_answer'] < session['bid'] else 'bot'
+        action = bot.choose_action(game_state['current_width'])
+        game_state['bot_log'].append(f"Bot chooses to: {action}")
 
-        session['game_over'] = True
-        session['winner'] = winner
-        return redirect(url_for('result'))
+        if action == 'make_market':
+            game_state['market_maker'] = 'bot'
+            game_state['market_made'] = False 
+            game_state['current_mover'] = 'player'
+            game_state['waiting_for_market'] = True
+            
+        else: 
+            new_width = int(round(game_state['current_width'] * bot.width_reduction_multiplier))
+            game_state['current_width'] = max(1, new_width)
+            game_state['current_mover'] = 'player'
 
-    else: # request.method == 'GET'
-        # market_maker == 'bot'
-        # Player must trade
-        bid = session['bid']
-        ask = session['ask']
-        return render_template('trade.html', bid=bid, ask=ask, market_maker=session['market_maker'])
+    game_state['bot'] = bot.to_dict()
+    session['game_state'] = game_state
+    return redirect(url_for('game'))
 
 @app.route('/result')
 def result():
-    winner = session.get('winner', 'unknown')
-    true_answer = session.get('true_answer')
-    units = session.get('units')
-    bot_log = session.get('bot_log', [])
-    bot_trade_action = session.get('bot_trade_action')
-    market_maker = session.get('market_maker')
+    game_state = session.get('game_state')
+    if not game_state:
+        flash("Game state not found.  Please start a new game.", 'error')
+        return redirect(url_for('home'))
+
+    winner = game_state.get('winner', 'unknown')
+    true_answer = game_state.get('true_answer')
+    units = game_state.get('units')
+    bot_log = game_state.get('bot_log', [])
+    damage = game_state.get('damage')
+    player_capital = game_state.get('player_capital')
+    bot_capital = game_state.get('bot_capital')
+    market_maker = game_state.get('market_maker')
+    bid = game_state.get('bid')
+    ask = game_state.get('ask')
 
     session.clear()
-    return render_template('result.html', answer=true_answer, units=units, winner=winner, bot_log=bot_log, bot_trade_action=bot_trade_action, market_maker=market_maker)
+    return render_template('result.html', winner=winner, answer=true_answer, units=units,
+                           bot_log=bot_log, damage=damage, player_capital=player_capital,
+                           bot_capital=bot_capital, market_maker=market_maker, bid=bid, ask=ask)
 
 if __name__ == '__main__':
     app.run(debug=True)
