@@ -69,28 +69,6 @@
                     </form>
                 </div>
 
-                <script>
-                    const width = {{ game_state.current_width }};
-                    
-                    function calculateAsk() {
-                        const bidInput = document.getElementById('bid');
-                        const askInput = document.getElementById('ask');
-                        if (bidInput.value !== '') {
-                            const bid = parseInt(bidInput.value);
-                            askInput.value = Math.round(bid + width);
-                        }
-                    }
-
-                    function calculateBid() {
-                        const bidInput = document.getElementById('bid');
-                        const askInput = document.getElementById('ask');
-                        if (askInput.value !== '') {
-                            const ask = parseInt(askInput.value);
-                            bidInput.value = Math.round(ask - width);
-                        }
-                    }
-                </script>
-
             <!-- Reduce Width or Make Market Options -->
             {% elif show_reduce_width_option %}
                 <form method="post" class="game-form">
@@ -112,7 +90,15 @@
             <!-- Trading Interface -->
             {% elif game_state.market_made %}
                 {% if game_state.market_maker == 'player' %}
-                    <p>Waiting for bot to trade on your market...</p>
+                    <div class="market-display">
+                        <h3>Bot's Market:</h3>
+                        <p>Bid: {{ game_state.bid }} | Ask: {{ game_state.ask }}</p>
+                        <form method="post">
+                            <input type="hidden" name="action" value="trade">
+                            <button type="submit" name="trade_action" value="buy">Buy at Ask</button>
+                            <button type="submit" name="trade_action" value="sell">Sell at Bid</button>
+                        </form>
+                    </div>
                 {% else %}
                     <div class="trading-form">
                         <h3>Market Prices:</h3>
@@ -146,7 +132,7 @@
             border-radius: 5px;
             border: 1px solid #dee2e6;
         }
-        .market-maker-form, .trading-form, .game-form {
+        .market-maker-form, .trading-form, .game-form, .market-display {
             background: #f5f5f5;
             padding: 20px;
             margin: 20px 0;
@@ -217,5 +203,25 @@
                 actionSelect.addEventListener("change", updateWidthInput);
             }
         });
+
+        function calculateAsk() {
+            const width = {{ game_state.current_width }};
+            const bidInput = document.getElementById('bid');
+            const askInput = document.getElementById('ask');
+            if (bidInput.value !== '') {
+                const bid = parseInt(bidInput.value);
+                askInput.value = bid + width;
+            }
+        }
+
+        function calculateBid() {
+            const width = {{ game_state.current_width }};
+            const bidInput = document.getElementById('bid');
+            const askInput = document.getElementById('ask');
+            if (askInput.value !== '') {
+                const ask = parseInt(askInput.value);
+                bidInput.value = ask - width;
+            }
+        }
     </script>
 {% endblock %}

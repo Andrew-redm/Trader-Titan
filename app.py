@@ -340,7 +340,7 @@ def game():
             if trade_action not in ['buy', 'sell']:
                 flash("Invalid trade action.", 'error')
             else:
-                correct_price = game_state['question_answer']
+                correct_price = game_state['true_answer']
                 if trade_action == 'buy':
                     trade_price = game_state['ask']
                     damage = abs(correct_price - trade_price)
@@ -348,9 +348,18 @@ def game():
                     trade_price = game_state['bid']
                     damage = abs(trade_price - correct_price)
 
-                game_state['player_capital'] -= damage
+                # Calculate who won this round
+                if (trade_action == 'buy' and correct_price < trade_price) or \
+                   (trade_action == 'sell' and correct_price > trade_price):
+                    game_state['player_capital'] -= damage
+                    game_state['winner'] = 'bot'
+                    game_state['last_round_winner'] = 'bot'
+                else:
+                    game_state['bot_capital'] -= damage
+                    game_state['winner'] = 'player'
+                    game_state['last_round_winner'] = 'player'
+
                 game_state['last_round_damage'] = damage
-                game_state['last_round_winner'] = 'bot'
                 game_state['round_ended'] = True
 
                 if game_state['player_capital'] <= 0:
