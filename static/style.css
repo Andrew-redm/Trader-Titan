@@ -4,6 +4,17 @@ body {
     font-family: sans-serif;
   }
   
+  @font-face {
+    font-family: 'Press Start 2P';
+    src: url('/static/fonts/PressStart2P-Regular.ttf') format('truetype');
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Press Start 2P', sans-serif;
+  }
+
   .content {
     max-width: 600px;
     margin: 0 auto;
