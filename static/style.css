@@ -9,14 +9,188 @@ body {
     src: url('/static/fonts/PressStart2P-Regular.ttf') format('truetype');
   }
 
+  /* Reset base styles */
   body {
     margin: 0;
     padding: 0;
     font-family: 'Press Start 2P', sans-serif;
+    background-color: #f0f0f0;
   }
 
   .content {
     max-width: 600px;
     margin: 0 auto;
     padding: 1rem;
+  }
+
+/* Question Header */
+.question-header {
+  background: #f8f8f8;
+  border: 3px solid #333;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.question-text {
+  margin: 0;
+  line-height: 1.5;
+  color: #333;
+}
+
+  /* Battle screen container */
+  .battle-screen {
+    display: grid;
+    grid-template-rows: auto 45% 10% 45%;
+    height: 100vh;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    gap: 15px;
+    background-color: white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  }
+
+  /* Bot section styling */
+  .bot-area {
+    display: grid;
+    grid-template-columns: 65% 35%;
+    gap: 20px;
+    padding: 15px;
+  }
+
+  .bot-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .bot-dialog {
+    background: #f8f8f8;
+    border: 3px solid #333;
+    border-radius: 12px;
+    padding: 15px;
+    min-height: 100px;
+    font-size: 14px;
+  }
+
+  .bot-stats {
+    background: #f8f8f8;
+    border: 3px solid #333;
+    border-radius: 12px;
+    padding: 15px;
+  }
+
+  .bot-avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .bot-avatar img {
+    max-width: 180px;
+    height: auto;
+    transition: transform 0.3s ease;
+  }
+
+  /* Width reduction bar */
+  .width-bar-container {
+    padding: 0 20px;
+  }
+
+  .width-bar {
+    background: #ddd;
+    border: 3px solid #333;
+    border-radius: 15px;
+    height: 25px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .width-progress {
+    background: linear-gradient(to right, #4CAF50, #45a049);
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.5s ease;
+  }
+
+  /* Player section */
+  .player-area {
+    display: grid;
+    grid-template-columns: 35% 65%;
+    gap: 20px;
+    padding: 15px;
+  }
+
+  .player-avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .player-avatar img {
+    max-width: 150px;
+    height: auto;
+  }
+
+  .player-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  /* Health bars */
+  .health-container {
+    margin-bottom: 10px;
+  }
+
+  .health-bar {
+    height: 20px;
+    background: #ddd;
+    border: 3px solid #333;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .health-progress {
+    background: linear-gradient(to right, #ff4444, #cc0000);
+    height: 100%;
+    transition: width 0.5s ease;
+  }
+
+  /* Action buttons */
+  .action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .action-button {
+    font-family: 'Press Start 2P', sans-serif;
+    padding: 12px;
+    border: 3px solid #333;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+  }
+
+  .action-button:hover {
+    background: #e0e0e0;
+    transform: translateY(-2px);
+  }
+
+  /* Form inputs */
+  input[type="number"],
+  select {
+    font-family: 'Press Start 2P', sans-serif;
+    padding: 8px;
+    border: 2px solid #333;
+    border-radius: 6px;
+    width: 100%;
+    margin-bottom: 10px;
   }

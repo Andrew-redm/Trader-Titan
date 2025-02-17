@@ -86,6 +86,7 @@ def initialize_game_battle(selected_bot_type):
             'units': units,
             'current_mover': random.choice(['player', 'bot']),
             'current_width': None,
+            'initial_width': None,
             'game_over': False,
             'market_made': False,
             'market_maker': None,
@@ -291,6 +292,7 @@ def game():
                     flash("Initial width must be at least 1.", 'error')
                 else:
                     game_state['current_width'] = initial_width
+                    game_state['initial_width'] = initial_width  # Add this line
                     game_state['current_mover'] = 'bot'
                     session['game_state'] = game_state
                     return redirect(url_for('bot_turn'))

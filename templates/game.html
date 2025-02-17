@@ -1,227 +1,85 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>Trader Titan</h1>
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-
-    <!-- Game State Information -->
-    <div class="game-info">
-        <p>Question: {{ game_state.question }}</p>
-        <p>Player Capital: {{ game_state.player_capital }}</p>
-        <p>Bot Capital: {{ game_state.bot_capital }}</p>
-        {% if game_state.current_width %}
-            <p>Current Width: {{ game_state.current_width }}</p>
-        {% endif %}
+<div class="battle-screen">
+    <!-- Question Header -->
+    <div class="question-header">
+        <p class="question-text">{{ game_state.question }}</p>
+    </div>
+    <!-- Bot Section -->
+    <div class="bot-area">
+        <div class="bot-info">
+            <div class="bot-dialog">
+                <p>{{ game_state.bot_type_name }}</p>
+                {% if game_state.bot_log %}
+                    <p>{{ game_state.bot_log[-1] }}</p>
+                {% endif %}
+            </div>
+            <div class="bot-stats">
+                <div class="health-bar">
+                    <div class="health-progress" style="width: {{ (game_state.bot_capital / 10000) * 100 }}%"></div>
+                </div>
+                <p>HP: {{ game_state.bot_capital }}/10000</p>
+            </div>
+        </div>
+        <div class="bot-avatar">
+            <img src="{{ url_for('static', filename='images/bots/' + game_state.bot_type_name.lower() + '.png') }}" 
+                 alt="{{ game_state.bot_type_name }}">
+        </div>
     </div>
 
-    {% if game_state.get('round_summary') %}
-        <div class="round-summary">
-            <h3>Last Round Summary</h3>
-            <p>True Answer: {{ game_state.round_summary.true_answer }}</p>
-            <p>Bot {{ game_state.round_summary.trade_action }} at {{ game_state.round_summary.trade_price }}</p>
-            <p>Damage Dealt: {{ game_state.round_summary.damage }}</p>
-            <p>Winner: {{ game_state.round_summary.winner }}</p>
+    <!-- Width Reduction Bar -->
+    <div class="width-bar-container">
+        <div class="width-bar">
+            {% if game_state.initial_width %}
+            <div class="width-progress" style="width: {{ (game_state.current_width / game_state.initial_width) * 100 }}%"></div>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
 
-    <!-- Game Actions -->
-    {% if waiting_for_bot %}
-        <p>Bot is thinking...</p>
-        <meta http-equiv="refresh" content="1;url={{ url_for('bot_turn') }}">
-    {% else %}
-        {% if game_state.current_mover == 'player' %}
-            <p>It's your turn!</p>
-            
-            <!-- Initial Width Form -->
-            {% if show_initial_width_form %}
-                <form method="post" class="game-form">
-                    <label for="initial_width">Set Initial Width:</label>
-                    <input type="number" id="initial_width" name="initial_width" required>
-                    <button type="submit">Set Width</button>
-                </form>
-            
-            <!-- Market Making Form (when bot chose make_market) -->
-            {% elif game_state.market_maker == 'bot' and not game_state.market_made %}
-                <div class="market-maker-form">
-                    <h3>Bot has chosen to make you provide the market!</h3>
-                    <form method="post">
-                        <input type="hidden" name="action" value="provide_market">
-                        <div>
-                            <label for="bid">Your Bid:</label>
-                            <input type="number" id="bid" name="bid" required step="1" oninput="calculateAsk()">
-                        </div>
-                        <div>
-                            <label for="ask">Your Ask:</label>
-                            <input type="number" id="ask" name="ask" required step="1" oninput="calculateBid()">
-                        </div>
-                        <small>The spread (ask - bid) must equal the current width ({{ game_state.current_width }})</small>
-                        <button type="submit">Submit Market</button>
-                    </form>
+    <!-- Player Section -->
+    <div class="player-area">
+        <div class="player-avatar">
+            <img src="{{ url_for('static', filename='images/player.png') }}" alt="Player">
+        </div>
+        <div class="player-controls">
+            <!-- Player Health -->
+            <div class="health-container">
+                <div class="health-bar">
+                    <div class="health-progress" style="width: {{ (game_state.player_capital / 10000) * 100 }}%"></div>
                 </div>
+                <p>HP: {{ game_state.player_capital }}/10000</p>
+            </div>
 
-            <!-- Reduce Width or Make Market Options -->
+            <!-- Game Controls -->
+            {% if show_initial_width_form %}
+            <div class="action-buttons">
+                <form method="post">
+                    <input type="number" name="initial_width" placeholder="Enter initial width" required>
+                    <button type="submit" class="action-button">Set Width</button>
+                </form>
+            </div>
             {% elif show_reduce_width_option %}
-                <form method="post" class="game-form">
-                    <label for="action">Choose Action:</label>
-                    <select id="action" name="action" required>
+            <div class="action-buttons">
+                <form method="post">
+                    <select name="action" class="action-select">
                         <option value="reduce_width">Reduce Width</option>
                         <option value="make_market">Make Market</option>
                     </select>
-
-                    <div id="width_input">
-                        <label for="width">New Width:</label>
-                        <input type="number" id="width" name="width">
-                        <small>(Must be at least 10% smaller than current width)</small>
-                    </div>
-
-                    <button type="submit">Submit</button>
+                    <input type="number" name="width" placeholder="New width">
+                    <button type="submit" class="action-button">Submit</button>
                 </form>
-
-            <!-- Trading Interface -->
+            </div>
             {% elif game_state.market_made %}
-                {% if game_state.market_maker == 'player' %}
-                    <div class="market-display">
-                        <h3>Bot's Market:</h3>
-                        <p>Bid: {{ game_state.bid }} | Ask: {{ game_state.ask }}</p>
-                        <form method="post">
-                            <input type="hidden" name="action" value="trade">
-                            <button type="submit" name="trade_action" value="buy">Buy at Ask</button>
-                            <button type="submit" name="trade_action" value="sell">Sell at Bid</button>
-                        </form>
-                    </div>
-                {% else %}
-                    <div class="trading-form">
-                        <h3>Market Prices:</h3>
-                        <p>Bid: {{ game_state.bid }} | Ask: {{ game_state.ask }}</p>
-                        <form method="post">
-                            <input type="hidden" name="action" value="trade">
-                            <button type="submit" name="trade_action" value="buy">Buy at Ask</button>
-                            <button type="submit" name="trade_action" value="sell">Sell at Bid</button>
-                        </form>
-                    </div>
-                {% endif %}
+            <div class="action-buttons">
+                <form method="post">
+                    <input type="hidden" name="action" value="trade">
+                    <button type="submit" name="trade_action" value="buy" class="action-button">Buy at {{ game_state.ask }}</button>
+                    <button type="submit" name="trade_action" value="sell" class="action-button">Sell at {{ game_state.bid }}</button>
+                </form>
+            </div>
             {% endif %}
-        {% endif %}
-    {% endif %}
-
-    <!-- Bot Log -->
-    {% if game_state.bot_log %}
-        <h3>Bot Actions:</h3>
-        <ul class="bot-log">
-            {% for log in game_state.bot_log %}
-                <li>{{ log }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
-    <style>
-        .game-info {
-            background: #f8f9fa;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-            border: 1px solid #dee2e6;
-        }
-        .market-maker-form, .trading-form, .game-form, .market-display {
-            background: #f5f5f5;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-        .bot-log {
-            background: #eef;
-            padding: 10px;
-            margin-top: 20px;
-            border-radius: 5px;
-            border: 1px solid #ccf;
-        }
-        .round-summary {
-            background: #e3f2fd;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-            border: 1px solid #90caf9;
-        }
-        .round-summary h3 {
-            margin-top: 0;
-            color: #1976d2;
-        }
-        form div {
-            margin: 10px 0;
-        }
-        button {
-            margin: 10px 5px;
-            padding: 5px 15px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .flashes {
-            list-style: none;
-            padding: 0;
-        }
-        .flashes li {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 3px;
-        }
-        .flashes li.error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-    </style>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var actionSelect = document.getElementById("action");
-            var widthInputDiv = document.getElementById("width_input");
-
-            if (actionSelect && widthInputDiv) {
-                function updateWidthInput() {
-                    widthInputDiv.style.display = 
-                        actionSelect.value === "reduce_width" ? "block" : "none";
-                }
-
-                updateWidthInput();
-                actionSelect.addEventListener("change", updateWidthInput);
-            }
-        });
-
-        function calculateAsk() {
-            const width = {{ game_state.current_width }};
-            const bidInput = document.getElementById('bid');
-            const askInput = document.getElementById('ask');
-            if (bidInput.value !== '') {
-                const bid = parseInt(bidInput.value);
-                askInput.value = bid + width;
-            }
-        }
-
-        function calculateBid() {
-            const width = {{ game_state.current_width }};
-            const bidInput = document.getElementById('bid');
-            const askInput = document.getElementById('ask');
-            if (askInput.value !== '') {
-                const ask = parseInt(askInput.value);
-                bidInput.value = ask - width;
-            }
-        }
-    </script>
+        </div>
+    </div>
+</div>
 {% endblock %}
