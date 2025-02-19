@@ -9,3 +9,5 @@ _can i play against my friends?_
 No, not yet anyway
 
 Next on the list is to make it pretty and create some bot personas
+
+The game will probably be called 'Reckon Width' since the domain for that doesnt cost a fortune.
