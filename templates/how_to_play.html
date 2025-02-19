@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>How to Play The Game</h2>
+
+    <div class="instructions">
+        <p>Estimate the answer to a question that has been posed to you and another player. Knowing stuff is helpful, knowing how well you know stuff is also helpful.</p>
+        <p> Lets start at the end and work backwards. Here is a visual representation of the culmination of one round of the game:</p>
+        <p> In this instance, lets say the question was 'How many years did it take to build the Taj Mahal?'</p>
+        <img src="{{ url_for('static', filename='images/tutorial.png') }}" alt="Round Summary" class="round-summary-image">
+
+        <p>Players take turns reducing the "width" (red area, 20 in this example). A player can say "Make me a market!" instead of reducing, forcing the other player to create a bid/ask spread equal to the current width. This continues until a market is made.</p>
+        <p>The market maker has picked two numbers (bigger number - smaller number = width) between which he thinks the true answer lies (normally). The market taker can then choose the region to the left of the smaller number (indicated in this case with that nice blue arrow) or the region to the right of the larger number. The market maker owns the red region and whichever side the market taker doesn't take (shaded orange here)</p>
+        <p>In our example the market taker wins! The Taj Mahal took 22 years to build</p>
+
+        <h2>Battle Mode</h2>
+        <p>Face off against different bot personalities in an epic trading battle!</p>
+
+        <h2>How it works</h2>
+        <ul>
+            <li>Each player starts with 10,000 capital points (HP)</li>
+            <li>The loser of each round loses points relative to how bad their trade was</li>
+            <li>Reduce your opponent's capital to 0 to win!</li>
+        </ul>
+
+        <i>I still dont get it?</i>
+        <p>You probably do. Its just not very good yet</p>
+
+        <a href="{{ url_for('home') }}" class="back-button">Back to Home</a>
+    </div>
+{% endblock %}

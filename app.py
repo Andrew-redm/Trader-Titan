@@ -212,6 +212,10 @@ def home():
     bot_types_list = list(bot_types.keys())
     return render_template('home.html', bot_types=bot_types_list)
 
+@app.route('/how-to-play')
+def how_to_play():
+    return render_template('how_to_play.html')
+
 @app.route('/start_game', methods=['POST'])
 def start_game():
     game_mode = request.form['game_mode']
