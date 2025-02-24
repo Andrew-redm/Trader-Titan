@@ -42,6 +42,15 @@ body {
   font-size: 24px;
 }
 
+.round-summary-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 20px auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 button, .back-button {
   display: inline-block;
   margin-top: 15px;
@@ -67,4 +76,41 @@ button:hover, .back-button:hover {
 .how-to-play-section {
   margin-top: 40px;
   text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .instructions {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  p {
+    padding: 0 15px;
+    margin: 15px 0;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 18px;
+  }
+
+  .instructions h2 {
+    font-size: 24px;
+    margin-top: 20px;
+  }
+
+  .instructions ul {
+    font-size: 18px;
+    margin-left: 15px;
+  }
+
+  button, .back-button {
+    padding: 12px 24px;
+    font-size: 18px;
+  }
 }
