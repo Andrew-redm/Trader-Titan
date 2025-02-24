@@ -306,7 +306,7 @@ def game():
                 new_width = int(request.form['width'])
                 if new_width < 1:
                     flash("Width cannot be less than 1.", 'error')
-                elif new_width >= int(game_state['current_width'] * 0.9):
+                elif new_width > int(game_state['current_width'] * 0.9):
                     flash("Width reduction must be at least 10%.", 'error')
                 else:
                     game_state['current_width'] = new_width
